@@ -18,6 +18,9 @@ log_file = ~/.lakecli/app.log
 # history_file location.
 history_file = '~/.lakecli/history'
 
+# path to sqlite file that caches iam permissions
+iam_db_path = '~/.lakecli/iamdb'
+
 # Multi-line mode allows breaking up the sql statements into multiple lines. If
 # this is set to True, then the end of the statements must have a semi-colon.
 # If this is set to False then sql statements can't be split into multiple

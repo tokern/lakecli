@@ -34,6 +34,8 @@ from cli_helpers.tabular_output import preprocessors
 from pyathena.error import OperationalError
 
 import lakecli.packages.special as special
+from lakecli.iam.scanner import Scanner
+from lakecli.iam.orm import init
 from lakecli.sqlexecute import SQLExecute
 from lakecli.completer import AthenaCompleter
 from lakecli.style import AthenaStyle
@@ -74,6 +76,9 @@ class AthenaCli(object):
         aws_config = AWSConfig(
             aws_access_key_id, aws_secret_access_key, region, s3_staging_dir, profile, _cfg
         )
+        scanner = Scanner(aws_config, init())
+        scanner.scan()
+        sys.exit(0)
 
         try:
             self.connect(aws_config, database)
