@@ -1,10 +1,13 @@
 import sqlparse
+import boto3
 from abc import ABC, abstractmethod
 
 
 class GrantOrRevoke(ABC):
-    def __init__(self, privilege_type, tokens):
+    def __init__(self, privilege_type, aws_config, tokens):
         self.privilege_type = privilege_type
+        self.aws_config = aws_config
+
         self.privilege = []
         self.schema_name = None
         self.table_name = None
@@ -59,7 +62,7 @@ class GrantOrRevoke(ABC):
         if not self._current_token or self._current_token.ttype != sqlparse.tokens.String.Single:
             raise RuntimeError("Name not found at %d" % self._index)
 
-        name_1 = self._current_token.value
+        name_1 = self._current_token.value.strip("'")
         self._index, self._current_token = self._token_list.token_next(self._index)
 
         if not self._current_token or not self._current_token.match(sqlparse.tokens.Punctuation, '.'):
@@ -69,27 +72,58 @@ class GrantOrRevoke(ABC):
 
         if not self._current_token or self._current_token.ttype != sqlparse.tokens.String.Single:
             raise RuntimeError("Name not found at %d" % self._index)
-        name_2 = self._current_token.value
+        name_2 = self._current_token.value.strip("'")
         self._index, self._current_token = self._token_list.token_next(self._index)
 
         return [name_1, name_2]
 
-    @abstractmethod
     def get_payload(self):
+        resource = {}
+        if self.table_name is None:
+            resource = {
+                'Database': {
+                    'Name': self.schema_name
+                }
+            }
+        else:
+            resource = {
+                'Table': {
+                    'DatabaseName': self.schema_name,
+                    'Name': self.table_name
+                }
+            }
+
+        return {
+            'CatalogId': self.aws_config.account_id,
+            'Principal': {
+                'DataLakePrincipalIdentifier': 'arn:aws:iam::%s:%s' % (self.aws_config.account_id, self.principal)
+                },
+            'Resource': resource,
+            'Permissions': self.privilege
+        }
+
+    def _get_client(self):
+        return boto3.client('lakeformation',
+                            region_name=self.aws_config.region,
+                            aws_access_key_id=self.aws_config.aws_access_key_id,
+                            aws_secret_access_key=self.aws_config.aws_secret_access_key)
+
+    @abstractmethod
+    def execute(self):
         pass
 
 
 class Grant(GrantOrRevoke):
-    def __init__(self, statement):
-        super(Grant, self).__init__("GRANT", statement)
+    def __init__(self, aws_config, statement):
+        super(Grant, self).__init__("GRANT", aws_config, statement)
 
-    def get_payload(self):
-        pass
+    def execute(self):
+        self._get_client().grant_permissions(self.get_payload())
 
 
 class Revoke(GrantOrRevoke):
-    def __init__(self, statement):
-        super(Revoke, self).__init__("REVOKE", statement)
+    def __init__(self, aws_config, statement):
+        super(Revoke, self).__init__("REVOKE", aws_config, statement)
 
-    def get_payload(self):
-        pass
+    def execute(self):
+        self._get_client().revoke_permissions(self.get_payload())
