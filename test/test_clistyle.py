@@ -6,7 +6,7 @@ from lakecli.clistyle import style_factory
 
 def test_style_factory():
     """Test that a Pygments Style class is created."""
-    header = 'bold underline #ansired'
+    header = 'bold underline ansired'
     cli_style = {'Token.Output.Header': header}
     style = style_factory('default', cli_style)
 
