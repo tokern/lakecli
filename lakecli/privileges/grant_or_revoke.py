@@ -77,28 +77,28 @@ class GrantOrRevoke(ABC):
 
         return [name_1, name_2]
 
-    def get_payload(self):
-        resource = {}
+    def _get_resource(self):
         if self.table_name is None:
-            resource = {
+            return {
                 'Database': {
                     'Name': self.schema_name
                 }
             }
         else:
-            resource = {
+            return {
                 'Table': {
                     'DatabaseName': self.schema_name,
                     'Name': self.table_name
                 }
             }
 
+    def get_payload(self):
         return {
             'CatalogId': self.aws_config.account_id,
             'Principal': {
                 'DataLakePrincipalIdentifier': 'arn:aws:iam::%s:%s' % (self.aws_config.account_id, self.principal)
                 },
-            'Resource': resource,
+            'Resource': self._get_resource(),
             'Permissions': self.privilege
         }
 
@@ -118,7 +118,14 @@ class Grant(GrantOrRevoke):
         super(Grant, self).__init__("GRANT", aws_config, statement)
 
     def execute(self):
-        self._get_client().grant_permissions(self.get_payload())
+        self._get_client().grant_permissions(
+            CatalogId=self.aws_config.account_id,
+            Resource=self._get_resource(),
+            Permissions=self.privilege,
+            Principal={
+                'DataLakePrincipalIdentifier': 'arn:aws:iam::%s:%s' % (self.aws_config.account_id, self.principal)
+            }
+        )
 
 
 class Revoke(GrantOrRevoke):
@@ -126,4 +133,11 @@ class Revoke(GrantOrRevoke):
         super(Revoke, self).__init__("REVOKE", aws_config, statement)
 
     def execute(self):
-        self._get_client().revoke_permissions(self.get_payload())
+        self._get_client().revoke_permissions(
+            CatalogId=self.aws_config.account_id,
+            Resource=self._get_resource(),
+            Permissions=self.privilege,
+            Principal={
+                'DataLakePrincipalIdentifier': 'arn:aws:iam::%s:%s' % (self.aws_config.account_id, self.principal)
+            }
+        )

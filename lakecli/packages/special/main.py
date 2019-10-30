@@ -1,6 +1,8 @@
 import logging
 from collections import namedtuple
 
+import sqlparse
+
 from . import export
 
 log = logging.getLogger(__name__)
@@ -10,34 +12,39 @@ PARSED_QUERY = 1
 RAW_QUERY = 2
 
 SpecialCommand = namedtuple('SpecialCommand',
-        ['handler', 'command', 'shortcut', 'description', 'arg_type', 'hidden',
-            'case_sensitive'])
+                            ['handler', 'command', 'shortcut', 'description', 'arg_type', 'hidden',
+                             'case_sensitive'])
 
 COMMANDS = {}
+
 
 @export
 class CommandNotFound(Exception):
     pass
+
 
 @export
 def parse_special_command(sql):
     command, _, arg = sql.partition(' ')
     verbose = '+' in command
     command = command.strip().replace('+', '')
-    return (command, verbose, arg.strip())
+    return command, verbose, arg.strip()
+
 
 @export
 def special_command(command, shortcut, description, arg_type=PARSED_QUERY,
-        hidden=False, case_sensitive=False, aliases=()):
+                    hidden=False, case_sensitive=False, aliases=()):
     def wrapper(wrapped):
         register_special_command(wrapped, command, shortcut, description,
-                arg_type, hidden, case_sensitive, aliases)
+                                 arg_type, hidden, case_sensitive, aliases)
         return wrapped
+
     return wrapper
+
 
 @export
 def register_special_command(handler, command, shortcut, description,
-        arg_type=PARSED_QUERY, hidden=False, case_sensitive=False, aliases=()):
+                             arg_type=PARSED_QUERY, hidden=False, case_sensitive=False, aliases=()):
     cmd = command.lower() if not case_sensitive else command
     COMMANDS[cmd] = SpecialCommand(handler, command, shortcut, description,
                                    arg_type, hidden, case_sensitive)
@@ -46,6 +53,7 @@ def register_special_command(handler, command, shortcut, description,
         COMMANDS[cmd] = SpecialCommand(handler, command, shortcut, description,
                                        arg_type, case_sensitive=case_sensitive,
                                        hidden=True)
+
 
 @export
 def execute(cur, sql):
@@ -75,6 +83,7 @@ def execute(cur, sql):
     elif special_cmd.arg_type == RAW_QUERY:
         return special_cmd.handler(cur=cur, query=sql)
 
+
 @special_command('help', '\\?', 'Show this help.', arg_type=NO_QUERY, aliases=('\\?', '?'))
 def show_help():  # All the parameters are ignored.
     headers = ['Command', 'Shortcut', 'Description']
@@ -84,6 +93,7 @@ def show_help():  # All the parameters are ignored.
         if not value.hidden:
             result.append((value.command, value.shortcut, value.description))
     return [(None, result, headers, None)]
+
 
 def show_keyword_help(cur, arg):
     """
@@ -103,7 +113,7 @@ def show_keyword_help(cur, arg):
         return [(None, None, None, 'No help found for {0}.'.format(keyword))]
 
 
-@special_command('exit', '\\q', 'Exit.', arg_type=NO_QUERY, aliases=('\\q', ))
+@special_command('exit', '\\q', 'Exit.', arg_type=NO_QUERY, aliases=('\\q',))
 @special_command('quit', '\\q', 'Quit.', arg_type=NO_QUERY)
 def quit(*_args):
     raise EOFError
