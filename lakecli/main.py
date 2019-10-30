@@ -35,7 +35,6 @@ from pyathena.error import OperationalError
 
 import lakecli.packages.special as special
 from lakecli.iam.scanner import Scanner
-from lakecli.iam.orm import init, model_db_close
 from lakecli.sqlexecute import SQLExecute
 from lakecli.completer import AthenaCompleter
 from lakecli.style import AthenaStyle
@@ -79,9 +78,8 @@ class AthenaCli(object):
 
         if scan:
             LOGGER.info("Scanning Lake Formation Permissions")
-            scanner = Scanner(aws_config, init(_cfg['main']['iam_db_path']))
+            scanner = Scanner(aws_config, _cfg['main']['iam_db_path'])
             scanner.scan()
-            model_db_close()
 
         try:
             self.connect(_cfg['main']['iam_db_path'])

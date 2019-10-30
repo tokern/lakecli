@@ -1,11 +1,14 @@
+import os
 import boto3
-from lakecli.iam.orm import TablePrivilege, DatabasePrivilege
+from lakecli.iam.orm import TablePrivilege, DatabasePrivilege, init, model_db_close
 
 
 class Scanner:
-    def __init__(self, aws_config, connection):
+    def __init__(self, aws_config, path):
         self.aws_config = aws_config
-        self.connection = connection
+        self.path = os.path.expanduser(path)
+        if os.path.exists(self.path):
+            os.remove(self.path)
 
     def scan(self):
         lake_client = boto3.client('lakeformation',
@@ -43,6 +46,10 @@ class Scanner:
                     permission=permission, grant=grant
                 ))
 
-        with self.connection.atomic():
-            TablePrivilege.bulk_create(table_privileges, batch_size=100)
-            DatabasePrivilege.bulk_create(db_privileges, batch_size=100)
+        connection = init(self.path)
+        try:
+            with connection.atomic():
+                TablePrivilege.bulk_create(table_privileges, batch_size=100)
+                DatabasePrivilege.bulk_create(db_privileges, batch_size=100)
+        finally:
+            model_db_close()
