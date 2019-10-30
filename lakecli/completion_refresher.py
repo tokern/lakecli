@@ -53,11 +53,7 @@ class CompletionRefresher(object):
         # Create a new pgexecute method to popoulate the completions.
         e = sqlexecute
         executor = SQLExecute(
-            e.aws_access_key_id,
-            e.aws_secret_access_key,
-            e.region_name,
-            e.s3_staging_dir,
-            e.database
+            e.path
         )
 
         # If callbacks is a single function then push it into a list.

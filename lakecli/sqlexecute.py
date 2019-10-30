@@ -1,8 +1,9 @@
 # encoding: utf-8
 
+import os
 import logging
 import sqlparse
-import pyathena
+import sqlite3
 
 from lakecli.packages import special
 
@@ -10,40 +11,35 @@ logger = logging.getLogger(__name__)
 
 
 class SQLExecute(object):
-    DATABASES_QUERY = 'SHOW DATABASES'
-    TABLES_QUERY = 'SHOW TABLES'
+    TABLES_QUERY = '''
+        SELECT name, sql FROM sqlite_master
+        WHERE type='table'
+        ORDER BY name;'''
+
     TABLE_COLUMNS_QUERY = '''
-        SELECT table_name, column_name FROM information_schema.columns
-        WHERE table_schema = '%s'
-        ORDER BY table_name, ordinal_position
+        SELECT 
+            m.name as table_name, 
+            p.name as column_name
+        FROM 
+            sqlite_master AS m
+        JOIN 
+            pragma_table_info(m.name) AS p
+        ORDER BY 
+        m.name, 
+        p.cid
     '''
 
     def __init__(
         self,
-        aws_access_key_id,
-        aws_secret_access_key,
-        region_name,
-        s3_staging_dir,
-        database
+        path
     ):
-        self.aws_access_key_id = aws_access_key_id
-        self.aws_secret_access_key = aws_secret_access_key
-        self.region_name = region_name
-        self.s3_staging_dir = s3_staging_dir
-        self.database = database
-
+        self.path = os.path.expanduser(path)
+        self.database = os.path.basename(path)
         self.connect()
 
     def connect(self, database=None):
-        conn = pyathena.connect(
-            aws_access_key_id=self.aws_access_key_id,
-            aws_secret_access_key=self.aws_secret_access_key,
-            region_name=self.region_name,
-            s3_staging_dir=self.s3_staging_dir,
-            schema_name=database or self.database,
-            poll_interval=0.2 # 200ms
-        )
-        self.database = database or self.database
+        logger.info("Connect to %s " % self.path)
+        conn = sqlite3.connect(self.path)
 
         if hasattr(self, 'conn'):
             self.conn.close()
@@ -99,19 +95,17 @@ class SQLExecute(object):
 
     def tables(self):
         '''Yields table names.'''
-        with self.conn.cursor() as cur:
+        with self.conn as cur:
             cur.execute(self.TABLES_QUERY)
             for row in cur:
                 yield row
 
     def table_columns(self):
         '''Yields column names.'''
-        with self.conn.cursor() as cur:
-            cur.execute(self.TABLE_COLUMNS_QUERY % self.database)
+        with self.conn as cur:
+            cur.execute(self.TABLE_COLUMNS_QUERY)
             for row in cur:
                 yield row
 
     def databases(self):
-        with self.conn.cursor() as cur:
-            cur.execute(self.DATABASES_QUERY)
-            return [x[0] for x in cur.fetchall()]
+        return [self.database]

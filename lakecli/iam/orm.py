@@ -33,7 +33,7 @@ class TablePrivilege(BaseModel):
 
 
 def init(path):
-    database = SqliteDatabase(os.path.abspath(path))
+    database = SqliteDatabase(os.path.expanduser(path))
     database_proxy.initialize(database)
     database_proxy.connect()
     database_proxy.create_tables([DatabasePrivilege, TablePrivilege])

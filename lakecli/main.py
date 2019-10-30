@@ -84,7 +84,7 @@ class AthenaCli(object):
             model_db_close()
 
         try:
-            self.connect(aws_config, database)
+            self.connect(_cfg['main']['iam_db_path'])
         except Exception as e:
             self.echo(str(e), err=True, fg='red')
             err_msg = '''
@@ -200,13 +200,9 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
         self.prompt = self.get_prompt(arg)
         return [(None, None, None, "Changed prompt format to %s" % arg)]
 
-    def connect(self, aws_config, database):
+    def connect(self, path):
         self.sqlexecute = SQLExecute(
-            aws_config.aws_access_key_id,
-            aws_config.aws_secret_access_key,
-            aws_config.region,
-            aws_config.s3_staging_dir,
-            database
+            path
         )
 
     def handle_editor_command(self, cli, document):
@@ -590,8 +586,7 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
     def get_prompt(self, string):
         sqlexecute = self.sqlexecute
         now = datetime.now()
-        string = string.replace('\\r', sqlexecute.region_name or '(none)')
-        string = string.replace('\\d', sqlexecute.database or '(none)')
+        string = string.replace('\\d', os.path.basename(sqlexecute.path) or '(none)')
         string = string.replace('\\n', "\n")
         string = string.replace('\\D', now.strftime('%a %b %d %H:%M:%S %Y'))
         string = string.replace('\\m', now.strftime('%M'))
