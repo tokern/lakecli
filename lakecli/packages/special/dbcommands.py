@@ -1,7 +1,6 @@
 import logging
 import os
 import platform
-from pyathena import ProgrammingError
 
 from lakecli import __version__
 from lakecli.packages.special import iocommands
@@ -28,6 +27,7 @@ def list_tables(cur, arg=None, arg_type=PARSED_QUERY, verbose=False):
         return [(None, None, None, '')]
 
     return [(None, tables, headers, status)]
+
 
 @special_command('\\l', '\\l', 'List databases.', arg_type=RAW_QUERY, case_sensitive=True)
 def list_databases(cur, **_):

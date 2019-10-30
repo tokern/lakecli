@@ -31,7 +31,6 @@ from pygments.lexers.sql import SqlLexer
 from pygments.token import Token
 from cli_helpers.tabular_output import TabularOutputFormatter
 from cli_helpers.tabular_output import preprocessors
-from pyathena.error import OperationalError
 
 import lakecli.packages.special as special
 from lakecli.iam.scanner import Scanner

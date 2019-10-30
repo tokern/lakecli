@@ -24,7 +24,6 @@ install_requirements = [
     'cli_helpers[styles]>=1.0.1',
     'botocore>=1.5.52',
     'boto3>=1.4.4',
-    'PyAthena>=1.2.2',
     'peewee >= 3.11.2'
 ]
 
