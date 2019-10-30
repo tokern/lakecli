@@ -1,4 +1,4 @@
-from lakecli.privileges.grant import Grant
+from lakecli.privileges.grant_or_revoke import Grant, Revoke
 import sqlparse
 
 
@@ -28,4 +28,14 @@ def test_table_privilege():
     assert grant.schema_name == "'taxilake'"
     assert grant.table_name == "'parq_misc'"
     assert grant.principal == "'user'"
+
+
+def test_table_revoke():
+    statement = "REVOKE SELECT, INSERT ON TABLE 'taxilake'.'parq_misc' to 'user'"
+    revoke = Revoke(sqlparse.parse(statement)[0])
+    revoke.process()
+    assert revoke.privilege == ['SELECT', 'INSERT']
+    assert revoke.schema_name == "'taxilake'"
+    assert revoke.table_name == "'parq_misc'"
+    assert revoke.principal == "'user'"
 

@@ -1,8 +1,10 @@
 import sqlparse
+from abc import ABC, abstractmethod
 
 
-class Grant:
-    def __init__(self, tokens):
+class GrantOrRevoke(ABC):
+    def __init__(self, privilege_type, tokens):
+        self.privilege_type = privilege_type
         self.privilege = []
         self.schema_name = None
         self.table_name = None
@@ -13,7 +15,7 @@ class Grant:
         self._token_list = tokens
 
     def process(self):
-        self._check_simple_keyword("GRANT")
+        self._check_simple_keyword(self.privilege_type)
         self._check_and_set_permissions()
         self._check_simple_keyword("ON")
         self._check_table_or_database_clause()
@@ -72,3 +74,22 @@ class Grant:
 
         return [name_1, name_2]
 
+    @abstractmethod
+    def get_payload(self):
+        pass
+
+
+class Grant(GrantOrRevoke):
+    def __init__(self, statement):
+        super(Grant, self).__init__("GRANT", statement)
+
+    def get_payload(self):
+        pass
+
+
+class Revoke(GrantOrRevoke):
+    def __init__(self, statement):
+        super(Revoke, self).__init__("REVOKE", statement)
+
+    def get_payload(self):
+        pass
