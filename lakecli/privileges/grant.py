@@ -63,6 +63,8 @@ class Grant:
         if not self._current_token or not self._current_token.match(sqlparse.tokens.Punctuation, '.'):
             return [name_1]
 
+        self._index, self._current_token = self._token_list.token_next(self._index)
+
         if not self._current_token or self._current_token.ttype != sqlparse.tokens.String.Single:
             raise RuntimeError("Name not found at %d" % self._index)
         name_2 = self._current_token.value
