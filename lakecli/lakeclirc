@@ -5,6 +5,7 @@
 aws_access_key_id = ''
 aws_secret_access_key = ''
 region = '' # e.g us-west-2, us-east-1
+account_id = ''
 
 # Amazon S3 staging directory where query results are stored
 # NOTE: S3 should in the same region as specified above.

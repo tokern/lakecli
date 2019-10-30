@@ -71,13 +71,13 @@ class AthenaCli(object):
 
         self.init_logging(_cfg['main']['log_file'], _cfg['main']['log_level'])
 
-        aws_config = AWSConfig(
+        self.aws_config = AWSConfig(
             aws_access_key_id, aws_secret_access_key, region, s3_staging_dir, profile, _cfg
         )
 
         if scan:
             LOGGER.info("Scanning Lake Formation Permissions")
-            scanner = Scanner(aws_config, _cfg['main']['iam_db_path'])
+            scanner = Scanner(self.aws_config, _cfg['main']['iam_db_path'])
             scanner.scan()
 
         try:
@@ -165,6 +165,13 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
             self.change_table_format, 'tableformat', '\\T',
             'Change the table format used to output results.',
             aliases=('\\T',), case_sensitive=True)
+        from lakecli.packages.special.main import RAW_QUERY
+        special.register_special_command(
+            self.grant_execute, 'GRANT', '',
+            'Execute GRANT Statement', arg_type=RAW_QUERY)
+        special.register_special_command(
+            self.revoke_execute, 'REVOKE', '',
+            'Execute REVOKE Statement', arg_type=RAW_QUERY)
 
     def change_table_format(self, arg, **_):
         try:
@@ -185,6 +192,28 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
             self.sqlexecute.connect(database=arg)
 
         yield (None, None, None, 'You are now connected to database "%s"' % self.sqlexecute.database)
+
+    def grant_execute(self, cur, query):
+        LOGGER.debug(query)
+        from lakecli.privileges.grant_or_revoke import Grant
+        grant = Grant(self.aws_config, sqlparse.parse(query)[0])
+        try:
+            grant.process()
+            grant.execute()
+            yield (None, None, None, 'GRANT')
+        except RuntimeError as err:
+            yield (None, None, None, err)
+
+    def revoke_execute(self, cur, query):
+        LOGGER.debug(query)
+        from lakecli.privileges.grant_or_revoke import Revoke
+        revoke = Revoke(self.aws_config, sqlparse.parse(query)[0])
+        try:
+            revoke.process()
+            revoke.execute()
+            yield (None, None, None, 'REVOKE')
+        except RuntimeError as err:
+            yield (None, None, None, err)
 
     def change_prompt_format(self, arg, **_):
         """
