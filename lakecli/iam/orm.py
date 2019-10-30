@@ -1,7 +1,7 @@
+import os
 from peewee import *
 
 database_proxy = DatabaseProxy()
-path = "/home/rajat/.lakecli/iamdb"
 
 
 class BaseModel(Model):
@@ -32,8 +32,8 @@ class TablePrivilege(BaseModel):
     grant = BooleanField()
 
 
-def init():
-    database = SqliteDatabase(path)
+def init(path):
+    database = SqliteDatabase(os.path.abspath(path))
     database_proxy.initialize(database)
     database_proxy.connect()
     database_proxy.create_tables([DatabasePrivilege, TablePrivilege])

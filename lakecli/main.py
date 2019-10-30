@@ -35,7 +35,7 @@ from pyathena.error import OperationalError
 
 import lakecli.packages.special as special
 from lakecli.iam.scanner import Scanner
-from lakecli.iam.orm import init
+from lakecli.iam.orm import init, model_db_close
 from lakecli.sqlexecute import SQLExecute
 from lakecli.completer import AthenaCompleter
 from lakecli.style import AthenaStyle
@@ -66,7 +66,7 @@ class AthenaCli(object):
     MAX_LEN_PROMPT = 45
 
     def __init__(self, region, aws_access_key_id, aws_secret_access_key,
-                 s3_staging_dir, athenaclirc, profile, database):
+                 s3_staging_dir, athenaclirc, profile, scan, database):
 
         config_files = (DEFAULT_CONFIG_FILE, athenaclirc)
         _cfg = self.config = read_config_files(config_files)
@@ -76,9 +76,12 @@ class AthenaCli(object):
         aws_config = AWSConfig(
             aws_access_key_id, aws_secret_access_key, region, s3_staging_dir, profile, _cfg
         )
-        scanner = Scanner(aws_config, init())
-        scanner.scan()
-        sys.exit(0)
+
+        if scan:
+            LOGGER.info("Scanning Lake Formation Permissions")
+            scanner = Scanner(aws_config, init(_cfg['main']['iam_db_path']))
+            scanner.scan()
+            model_db_close()
 
         try:
             self.connect(aws_config, database)
@@ -645,9 +648,10 @@ def is_mutating(status):
 @click.option('--s3-staging-dir', type=str, help="Amazon S3 staging directory where query results are stored.")
 @click.option('--lake-cli-rc', default=LAKE_CLI_RC, type=click.Path(dir_okay=False), help="Location of lake_cli_rc file.")
 @click.option('--profile', type=str, default='default', help='AWS profile')
+@click.option('--scan/--no-scan', default=False)
 @click.argument('database', default='default', nargs=1)
 def cli(execute, region, aws_access_key_id, aws_secret_access_key,
-        s3_staging_dir, lake_cli_rc, profile, database):
+        s3_staging_dir, lake_cli_rc, profile, scan, database):
     '''A Athena terminal client with auto-completion and syntax highlighting.
 
     \b
@@ -678,6 +682,7 @@ def cli(execute, region, aws_access_key_id, aws_secret_access_key,
         s3_staging_dir=s3_staging_dir,
         athenaclirc=lake_cli_rc,
         profile=profile,
+        scan=scan,
         database=database
     )
 
