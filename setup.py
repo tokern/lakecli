@@ -30,7 +30,7 @@ install_requirements = [
 setup(
     name='lakecli',
     author='dblintio',
-    author_email="lakecli@dblintio",
+    author_email="lakecli@tokern.io",
     version=version,
     packages=find_packages(),
     package_data={
