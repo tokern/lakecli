@@ -1,44 +1,124 @@
-[![Build Status](https://travis-ci.org/dbcli/athenacli.svg?branch=master)](https://travis-ci.org/dbcli/athenacli)
-[![PyPI](https://img.shields.io/pypi/v/athenacli.svg)](https://pypi.python.org/pypi/athenacli)
-[![image](https://img.shields.io/pypi/l/athenacli.svg)](https://pypi.org/project/athenacli/)
-[![image](https://img.shields.io/pypi/pyversions/athenacli.svg)](https://pypi.org/project/athenacli/)
-[![Join the chat at https://gitter.im/dbcli/athenacli](https://badges.gitter.im/dbcli/athenacli.svg)](https://gitter.im/dbcli/athenacli?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![image](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/zzl0)
+[![CircleCI](https://circleci.com/gh/tokern/lakecli.svg?style=svg)](https://circleci.com/gh/tokern/lakecli)
+[![codecov](https://codecov.io/gh/tokern/lakecli/branch/master/graph/badge.svg)](https://codecov.io/gh/tokern/lakecli)
+[![PyPI](https://img.shields.io/pypi/v/lakecli.svg)](https://pypi.python.org/pypi/lakecli)
+[![image](https://img.shields.io/pypi/l/lakecli.svg)](https://pypi.org/project/lakecli/)
+[![image](https://img.shields.io/pypi/pyversions/lakecli.svg)](https://pypi.org/project/lakecli/)
 
 # Introduction
 
-AthenaCLI is a command line interface (CLI) for the [Athena](https://aws.amazon.com/athena/) service that can do auto-completion and syntax highlighting, and is a proud member of the dbcli community.
+LakeCLI is a SQL interface (CLI) for managing [AWS Lake Formation](https://aws.amazon.com/lake-formation/) and 
+[AWS Glue](https://aws.amazon.com/glue) permissions. 
 
-![](./docs/_static/gif/athenacli.gif)
+# Features
+
+LakeCLI provides an *information schema* and supports SQL GRANT/REVOKE statements. These features help administrators
+* Use familiar SQL features to view and manage permissions
+* Write scripts to automate on-boarding and removing permissions.
+* Write scripts to monitor & alert permissions to ensure best practices and policies are followed.
+
+## Information Schema
+LakeCLI provides two tables:
+
+1. *database_privileges*
+2. *table_privileges*
+
+### Database Privileges
+| Column | Description |
+|--------|-------------|
+| id | Primary Key | 
+| schema_name | Name of the Schema | 
+| principal | AWS IAM Role or User |
+| permission | Permission type (Described in a later section) |
+| grant | Boolean. Describes if the principal is allowed to grant permission to others | 
+
+### Table Privileges
+| Column | Description |
+|--------|-------------|
+| id | Primary Key | 
+| schema_name | Schema Name of the Table | 
+| table_name  | Name of the Table |
+| principal | AWS IAM Role or User |
+| permission | Permission type (Described in a later section) |
+| grant | Boolean. Describes if the principal is allowed to grant permission to others | 
+
+## GRANT/REVOKE Statements
+
+    GRANT/REVOKE { { PERMISSION TYPE }
+        [, ...] }
+        ON { [ TABLE | DATABASE ] name }
+        TO role_specification
+
+### Permission Types
+
+* ALL
+* SELECT
+* ALTER
+* DROP
+* DELETE
+* INSERT
+* CREATE_DATABASE
+* CREATE_TABLE
+* DATA_LOCATION_ACCESS
+
+# Examples
+
+## Table Privileges
+
+    \r:iamdb> SELECT * FROM table_privileges;
+    +----+-------------+----------------+--------------+------------+-------+
+    | id | schema_name | table_name     | principal    | permission | grant |
+    +----+-------------+----------------+--------------+------------+-------+
+    | 1  | taxidata    | raw_misc       | role/lakecli | ALL        | 1     |
+    | 2  | taxidata    | raw_misc       | role/lakecli | ALTER      | 1     |
+    | 3  | taxidata    | raw_misc       | role/lakecli | DELETE     | 1     |
+    +----+-------------+----------------+--------------+------------+-------+
+
+## Database Privileges
+
+    \r:iamdb> SELECT * FROM database_privileges;
+    +----+-------------+--------------------------------+--------------+-------+
+    | id | schema_name | principal                      | permission   | grant |
+    +----+-------------+--------------------------------+--------------+-------+
+    | 9  | taxilake    | role/LakeFormationWorkflowRole | CREATE_TABLE | 1     |
+    | 10 | taxilake    | role/LakeFormationWorkflowRole | DROP         | 1     |
+    | 11 | default     | user/datalake_user             | ALTER        | 0     |
+    | 12 | default     | user/datalake_user             | CREATE_TABLE | 0     |
+    | 13 | default     | user/datalake_user             | DROP         | 0     |
+    +----+-------------+--------------------------------+--------------+-------+
+
+## GRANT
+
+    \r:iamdb> grant SELECT ON TABLE 'taxidata'.'raw_misc' TO 'user/datalake_user';
+    GRANT
+    Time: 1.467s
+    
+## REVOKE
+
+    \r:iamdb> revoke SELECT ON TABLE 'taxidata'.'raw_misc' TO 'user/datalake_user';
+    REVOKE
+    Time: 1.450s
 
 # Quick Start
 
 ## Install
 
-If you already know how to install python packages, then you can simply do:
-
 ``` bash
-$ pip install athenacli
+$ pip install lakecli
 ```
-
-If you don't know how to install python packages, please check the [Install](./docs/install.rst) page for more options (e.g brew, docker)
 
 ## Config
 
-A config file is automatically created at `~/.athenacli/athenaclirc` at first launch (run athenacli). See the file itself for a description of all available options.
+A config file is automatically created at `~/.lakecli/lakeclirc` at first launch (run lakecli). 
+See the file itself for a description of all available options.
 
-Below 4 variables are required. If you are a user of aws cli, you can refer to [awsconfig](./docs/awsconfig.rst) file to see how to reuse credentials configuration of aws cli.
+Below 4 variables are required. 
 
 ``` text
 # AWS credentials
 aws_access_key_id = ''
 aws_secret_access_key = ''
 region = '' # e.g us-west-2, us-east-1
-
-# Amazon S3 staging directory where query results are stored.
-# NOTE: S3 should in the same region as specified above.
-# The format is 's3://<your s3 directory path>'
-s3_staging_dir = ''
+account_id = ''
 ```
 
 or you can also use environment variables:
@@ -47,27 +127,7 @@ or you can also use environment variables:
 $ export AWS_ACCESS_KEY_ID=YOUR_ACCESS_KEY_ID
 $ export AWS_SECRET_ACCESS_KEY=YOUR_SECRET_ACCESS_KEY
 $ export AWS_DEFAULT_REGION=us-west-2
-$ export AWS_ATHENA_S3_STAGING_DIR=s3://YOUR_S3_BUCKET/path/to/
-```
-
-## Create a table
-
-``` bash
-$ athenacli -e examples/create_table.sql
-```
-
-You can find `examples/create_table.sql` [here](./examples/create_table.sql).
-
-## Run a query
-
-``` bash
-$ athenacli -e 'select elb_name, request_ip from elb_logs LIMIT 10'
-```
-
-## REPL
-
-``` bash
-$ athenacli [<database_name>]
+$ export AWS_ACCOUNT_ID=ACCOUNT_ID
 ```
 
 # Features
@@ -81,54 +141,31 @@ $ athenacli [<database_name>]
 - Some special commands. e.g. Favorite queries.
 - Alias support. Column completions will work even when table names are aliased.
 
-Please refer to the [Features](./docs/features.rst) page for the screenshots of above features.
-
 # Usages
 
 ```bash
-$ athenacli --help
-Usage: main.py [OPTIONS] [DATABASE]
+$ lakecli --help
+Usage: lakecli [OPTIONS]
 
-A Athena terminal client with auto-completion and syntax highlighting.
+  A Athena terminal client with auto-completion and syntax highlighting.
 
-Examples:
-    - athenacli
-    - athenacli my_database
+  Examples:
+    - lakecli
+    - lakecli my_database
 
 Options:
--e, --execute TEXT            Execute a command (or a file) and quit.
--r, --region TEXT             AWS region.
---aws-access-key-id TEXT      AWS access key id.
---aws-secret-access-key TEXT  AWS secretaccess key.
---s3-staging-dir TEXT         Amazon S3 staging directory where query
-                                results are stored.
---athenaclirc PATH            Location of athenaclirc file.
---help                        Show this message and exit.
+  -e, --execute TEXT            Execute a command (or a file) and quit.
+  -r, --region TEXT             AWS region.
+  --aws-access-key-id TEXT      AWS access key id.
+  --aws-secret-access-key TEXT  AWS secretaccess key.
+  --aws-account-id TEXT         Amazon Account ID.
+  --lake-cli-rc FILE            Location of lake_cli_rc file.
+  --profile TEXT                AWS profile
+  --scan / --no-scan
+  --help                        Show this message and exit.
 ```
-
-Please go to the [Usages](https://athenacli.readthedocs.io/en/latest/usage.html) for detailed information on how to use AthenaCLI.
-
-# Contributions
-
-If you're interested in contributing to this project, first of all I would like to extend my heartfelt gratitude. I've written a small [doc](https://athenacli.readthedocs.io/en/latest/develop.html) to describe how to get this running in a development setup.
-
-Please feel free to reach out to me if you need help. My email: zhuzhaolong0 AT gmail com
-
-# FAQs
-
-Please refer to the [FAQs](https://athenacli.readthedocs.io/en/latest/faq.html) for other information, e.g. "How can I get support for athenacli?".
 
 # Credits
 
-A special thanks to [Amjith Ramanujam](https://github.com/amjith) for creating pgcli and mycli, which inspired me to create this AthenaCLI, and AthenaCLI is created based on a clone of mycli.
-
-Thanks to [Jonathan Slenders](https://github.com/jonathanslenders) for creating the [Python Prompt Toolkit](https://github.com/jonathanslenders/python-prompt-toolkit), which leads me to pgcli and mycli. It's a lot of fun playing with this library.
-
-Thanks to [PyAthena](https://github.com/laughingman7743/PyAthena) for a pure python adapter to Athena database.
-
-Last but not least, thanks my team and manager encourage me to work on this hobby project.
-
-# Similar projects
-
-- [satterly/athena-cli](https://github.com/satterly/athena-cli): Presto-like CLI tool for AWS Athena.
-- [pengwynn/athena-cli](https://github.com/pengwynn/athena-cli): CLI for Amazon Athena, powered by JRuby.
+LakeCLI is based on [AthenaCLI](https://github.com/dbcli/athenacli) and the excellent [DBCli](https://www.dbcli.com/) 
+project. A big thanks to all of them for providing a great foundation to build SQL CLI projects.

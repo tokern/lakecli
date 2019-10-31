@@ -64,7 +64,7 @@ class AthenaCli(object):
     MAX_LEN_PROMPT = 45
 
     def __init__(self, region, aws_access_key_id, aws_secret_access_key,
-                 s3_staging_dir, athenaclirc, profile, scan, database):
+                 aws_account_id, athenaclirc, profile, scan):
 
         config_files = (DEFAULT_CONFIG_FILE, athenaclirc)
         _cfg = self.config = read_config_files(config_files)
@@ -72,7 +72,7 @@ class AthenaCli(object):
         self.init_logging(_cfg['main']['log_file'], _cfg['main']['log_level'])
 
         self.aws_config = AWSConfig(
-            aws_access_key_id, aws_secret_access_key, region, s3_staging_dir, profile, _cfg
+            aws_access_key_id, aws_secret_access_key, region, aws_account_id, profile, _cfg
         )
 
         if scan:
@@ -666,13 +666,12 @@ def is_mutating(status):
 @click.option('-r', '--region', type=str, help="AWS region.")
 @click.option('--aws-access-key-id', type=str, help="AWS access key id.")
 @click.option('--aws-secret-access-key', type=str, help="AWS secretaccess key.")
-@click.option('--s3-staging-dir', type=str, help="Amazon S3 staging directory where query results are stored.")
+@click.option('--aws-account-id', type=str, help="Amazon Account ID.")
 @click.option('--lake-cli-rc', default=LAKE_CLI_RC, type=click.Path(dir_okay=False), help="Location of lake_cli_rc file.")
 @click.option('--profile', type=str, default='default', help='AWS profile')
 @click.option('--scan/--no-scan', default=False)
-@click.argument('database', default='default', nargs=1)
 def cli(execute, region, aws_access_key_id, aws_secret_access_key,
-        s3_staging_dir, lake_cli_rc, profile, scan, database):
+        aws_account_id, lake_cli_rc, profile, scan):
     '''A Athena terminal client with auto-completion and syntax highlighting.
 
     \b
@@ -700,11 +699,10 @@ def cli(execute, region, aws_access_key_id, aws_secret_access_key,
         region=region,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key= aws_secret_access_key,
-        s3_staging_dir=s3_staging_dir,
+        aws_account_id=aws_account_id,
         athenaclirc=lake_cli_rc,
         profile=profile,
-        scan=scan,
-        database=database
+        scan=scan
     )
 
     #  --execute argument

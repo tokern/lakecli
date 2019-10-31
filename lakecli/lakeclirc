@@ -7,11 +7,6 @@ aws_secret_access_key = ''
 region = '' # e.g us-west-2, us-east-1
 account_id = ''
 
-# Amazon S3 staging directory where query results are stored
-# NOTE: S3 should in the same region as specified above.
-# The format is 's3://<your s3 directory path>'
-s3_staging_dir = ''
-
 [main]
 # log_file location.
 log_file = ~/.lakecli/app.log
