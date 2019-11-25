@@ -12,8 +12,6 @@ from datetime import datetime
 from random import choice
 from collections import namedtuple
 
-from prompt_toolkit.layout.prompt import DefaultPrompt
-from prompt_toolkit.layout.menus import CompletionsMenu
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit.shortcuts import create_prompt_layout, create_eventloop
 from prompt_toolkit.document import Document
@@ -25,18 +23,14 @@ from prompt_toolkit.enums import DEFAULT_BUFFER, EditingMode
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.interface import AcceptAction
 from prompt_toolkit import CommandLineInterface, Application, AbortAction
-from prompt_toolkit import CommandLineInterface, Application, AbortAction
 from prompt_toolkit.styles.from_pygments import style_from_pygments
-from pygments.lexers.sql import SqlLexer
 from pygments.token import Token
 from cli_helpers.tabular_output import TabularOutputFormatter
 from cli_helpers.tabular_output import preprocessors
 
 import lakecli.packages.special as special
 from lakecli.iam.scanner import Scanner
-from lakecli.sqlexecute import SQLExecute
 from lakecli.completer import AthenaCompleter
-from lakecli.style import AthenaStyle
 from lakecli.completion_refresher import CompletionRefresher
 from lakecli.packages.tabular_output import sql_format
 from lakecli.clistyle import style_factory
@@ -672,7 +666,7 @@ def is_mutating(status):
 @click.option('--scan/--no-scan', default=False)
 def cli(execute, region, aws_access_key_id, aws_secret_access_key,
         aws_account_id, lake_cli_rc, profile, scan):
-    '''A Athena terminal client with auto-completion and syntax highlighting.
+    '''A SQL client to manage AWS Lake Formation permissions.
 
     \b
     Examples:
