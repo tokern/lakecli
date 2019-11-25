@@ -9,7 +9,6 @@ import sqlparse
 import traceback
 from time import time
 from datetime import datetime
-from random import choice
 from collections import namedtuple
 
 from prompt_toolkit.history import FileHistory
@@ -40,7 +39,7 @@ from lakecli.clitoolbar import create_toolbar_tokens_func
 from lakecli.lexer import Lexer
 from lakecli.clibuffer import CLIBuffer
 from lakecli.sqlexecute import SQLExecute
-from lakecli.encodingutils import utf8tounicode, text_type
+from lakecli.encodingutils import text_type
 from lakecli.config import read_config_files, write_default_config, mkdir_p, AWSConfig
 
 
@@ -70,9 +69,7 @@ class AthenaCli(object):
         )
 
         if scan:
-            LOGGER.info("Scanning Lake Formation Permissions")
-            scanner = Scanner(self.aws_config, _cfg['main']['iam_db_path'])
-            scanner.scan()
+            self._scan()
 
         try:
             self.connect(_cfg['main']['iam_db_path'])
@@ -187,6 +184,11 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
 
         yield (None, None, None, 'You are now connected to database "%s"' % self.sqlexecute.database)
 
+    def _scan(self):
+        LOGGER.info("Scanning Lake Formation Permissions")
+        scanner = Scanner(self.aws_config, self.config['main']['iam_db_path'])
+        scanner.scan()
+
     def grant_execute(self, cur, query):
         LOGGER.debug(query)
         from lakecli.privileges.grant_or_revoke import Grant
@@ -194,6 +196,8 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
         try:
             grant.process()
             grant.execute()
+            self._scan()
+            self.sqlexecute.connect()
             yield (None, None, None, 'GRANT')
         except RuntimeError as err:
             yield (None, None, None, err)
@@ -205,6 +209,8 @@ For more details about the error, you can check the log file: %s''' % (LAKE_CLI_
         try:
             revoke.process()
             revoke.execute()
+            self._scan()
+            self.sqlexecute.connect()
             yield (None, None, None, 'REVOKE')
         except RuntimeError as err:
             yield (None, None, None, err)
