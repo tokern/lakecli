@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from sqlite3 import OperationalError
+
 import click
 import threading
 import logging

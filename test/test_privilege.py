@@ -1,3 +1,5 @@
+import pytest
+
 from lakecli.privileges.grant_or_revoke import Grant, Revoke
 import sqlparse
 
@@ -56,3 +58,19 @@ def test_grant_payload():
     assert payload['Resource']['Table']['DatabaseName'] == "taxilake"
 
 
+def test_missing_on():
+    statement = "GRANT SELECT DATABASE 'taxilake' to 'user'"
+    grant = Grant(TestAWSConfig(), sqlparse.parse(statement)[0])
+    with pytest.raises(RuntimeError) as excinfo:
+        grant.process()
+
+    assert "ON keyword expected. Instead found 'DATABASE'" == str(excinfo.value)
+
+
+def test_missing_on2():
+    statement = "GRANT SELECT, INSERT DATABASE 'taxilake' to 'user'"
+    grant = Grant(TestAWSConfig(), sqlparse.parse(statement)[0])
+    with pytest.raises(RuntimeError) as excinfo:
+        grant.process()
+
+    assert "ON keyword expected. Instead found 'DATABASE'" == str(excinfo.value)
