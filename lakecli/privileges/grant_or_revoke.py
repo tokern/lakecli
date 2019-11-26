@@ -30,8 +30,10 @@ class GrantOrRevoke(ABC):
             self.privilege.append(self._current_token.value)
             self._index, self._current_token = self._token_list.token_next(self._index)
 
-            if self._token_list[self._index].match(sqlparse.tokens.Punctuation, ','):
+            if self._current_token.match(sqlparse.tokens.Punctuation, ','):
                 self._index, self._current_token = self._token_list.token_next(self._index)
+            elif not self._current_token.match(sqlparse.tokens.Keyword, "on"):
+                raise RuntimeError("ON keyword expected. Instead found '%s'" % self._current_token.value)
 
     def _check_simple_keyword(self, keyword):
         if not self._current_token or not self._current_token.match(sqlparse.tokens.Keyword, keyword):
