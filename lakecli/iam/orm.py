@@ -39,7 +39,8 @@ class Column(BaseModel):
     column_name = TextField()
     data_type = TextField()
     is_partition_column = BooleanField()
-    has_pii = BooleanField(null=True)
+    pii = TextField(null=True)
+    ordinal = IntegerField()
 
 
 class DatabasePrivilege(BaseModel):

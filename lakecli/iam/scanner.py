@@ -85,21 +85,7 @@ class Scanner:
                     last_access_time=t['LastAccessTime'] if 'LastAccessTime' in t else None,
                 ))
 
-                if 'StorageDescriptor' in t and 'Columns' in t['StorageDescriptor']:
-                    column_response = t['StorageDescriptor']['Columns']
-                    LOGGER.debug(column_response)
-
-                    LOGGER.info("%d columns found in %s.%s" % (
-                        len(column_response), d['Name'], t['Name']))
-                    for c in column_response:
-                        columns.append(Column(
-                            table_schema=d['Name'],
-                            table_name=t['Name'],
-                            column_name=c['Name'],
-                            data_type=c['Type'],
-                            is_partition=False
-                        ))
-
+                ordinal_no = 1
                 if 'StorageDescriptor' in t and 'PartitionKeys' in t['StorageDescriptor']:
                     partition_columns = t['StorageDescriptor']['PartitionKeys']
                     LOGGER.debug(partition_columns)
@@ -108,13 +94,36 @@ class Scanner:
                         len(partition_columns), d['Name'], t['Name']))
 
                     for c in partition_columns:
+                        pii = c['Parameters']['PII'] if 'Parameters' in c and 'PII' in c['Parameters'] else None
                         columns.append(Column(
                             table_schema=d['Name'],
                             table_name=t['Name'],
                             column_name=c['Name'],
                             data_type=c['Type'],
-                            is_partition=True
+                            is_partition_column=True,
+                            pii=pii,
+                            ordinal=ordinal_no
                         ))
+                        ordinal_no += 1
+
+                if 'StorageDescriptor' in t and 'Columns' in t['StorageDescriptor']:
+                    column_response = t['StorageDescriptor']['Columns']
+                    LOGGER.debug(column_response)
+
+                    LOGGER.info("%d columns found in %s.%s" % (
+                        len(column_response), d['Name'], t['Name']))
+                    for c in column_response:
+                        pii = c['Parameters']['PII'] if 'Parameters' in c and 'PII' in c['Parameters'] else None
+                        columns.append(Column(
+                            table_schema=d['Name'],
+                            table_name=t['Name'],
+                            column_name=c['Name'],
+                            data_type=c['Type'],
+                            is_partition_column=False,
+                            pii=pii,
+                            ordinal=ordinal_no
+                        ))
+                        ordinal_no += 1
 
         connection = init(self.path)
         try:
