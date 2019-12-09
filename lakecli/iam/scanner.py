@@ -2,8 +2,7 @@ import os
 import boto3
 import logging
 
-from lakecli.iam.orm import TablePrivilege, DatabasePrivilege, init, model_db_close
-
+from lakecli.iam.orm import TablePrivilege, DatabasePrivilege, init, model_db_close, Table, Database, Schema, Column
 
 LOGGER = logging.getLogger(__name__)
 
@@ -54,18 +53,90 @@ class Scanner:
                     permission=permission, grant=grant
                 ))
 
+        glue_client = boto3.client('glue',
+                                   region_name=self.aws_config.region,
+                                   aws_access_key_id=self.aws_config.aws_access_key_id,
+                                   aws_secret_access_key=self.aws_config.aws_secret_access_key)
+
+        schemata = []
+        tables = []
+        columns = []
+
+        schemata_response = glue_client.get_databases()
+        LOGGER.debug(schemata_response)
+        LOGGER.info("%d databases found " % len(schemata_response['DatabaseList']))
+        for d in schemata_response['DatabaseList']:
+
+            schemata.append(Schema(
+                schema_name=d['Name'],
+                location=d['LocationUri'] if 'LocationUri' in d else None
+            ))
+
+            tables_response = glue_client.get_tables(
+                DatabaseName=d['Name']
+            )
+            LOGGER.debug(tables_response)
+            LOGGER.info("%d tables found in %s" % (len(tables_response['TableList']), d['Name']))
+            for t in tables_response['TableList']:
+                tables.append(Table(
+                    table_schema=d['Name'],
+                    table_name=t['Name'],
+                    create_time=t['CreateTime'],
+                    last_access_time=t['LastAccessTime'] if 'LastAccessTime' in t else None,
+                ))
+
+                if 'StorageDescriptor' in t and 'Columns' in t['StorageDescriptor']:
+                    column_response = t['StorageDescriptor']['Columns']
+                    LOGGER.debug(column_response)
+
+                    LOGGER.info("%d columns found in %s.%s" % (
+                        len(column_response), d['Name'], t['Name']))
+                    for c in column_response:
+                        columns.append(Column(
+                            table_schema=d['Name'],
+                            table_name=t['Name'],
+                            column_name=c['Name'],
+                            data_type=c['Type'],
+                            is_partition=False
+                        ))
+
+                if 'StorageDescriptor' in t and 'PartitionKeys' in t['StorageDescriptor']:
+                    partition_columns = t['StorageDescriptor']['PartitionKeys']
+                    LOGGER.debug(partition_columns)
+
+                    LOGGER.info("%d partition columns found in %s.%s" % (
+                        len(partition_columns), d['Name'], t['Name']))
+
+                    for c in partition_columns:
+                        columns.append(Column(
+                            table_schema=d['Name'],
+                            table_name=t['Name'],
+                            column_name=c['Name'],
+                            data_type=c['Type'],
+                            is_partition=True
+                        ))
+
         connection = init(self.path)
         try:
             with connection.atomic():
                 TablePrivilege.bulk_create(table_privileges, batch_size=100)
                 DatabasePrivilege.bulk_create(db_privileges, batch_size=100)
+                Schema.bulk_create(schemata, batch_size=100)
+                Table.bulk_create(tables, batch_size=100)
+                Column.bulk_create(columns, batch_size=100)
+
         finally:
             model_db_close()
 
     @staticmethod
     def _principal(arn):
         # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
+        LOGGER.debug(arn)
         elements = arn.split(':', 5)
+        if len(elements) != 6:
+            LOGGER.warning("Unknown format for arn '%s'" % arn)
+            return arn
+
         result = {
             'arn': elements[0],
             'partition': elements[1],
