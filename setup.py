@@ -42,7 +42,7 @@ setup(
     description=description,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dblintio/lakecli",
+    url="https://github.com/tokern/lakecli",
     install_requires=install_requirements,
     entry_points={
         'console_scripts': ['lakecli = lakecli.main:cli'],
