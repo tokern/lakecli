@@ -15,6 +15,27 @@ class Scanner:
             LOGGER.info("Remove old sqlite database at %s" % self.path)
             os.remove(self.path)
 
+    @staticmethod
+    def parse_columns(column_list, ordinal_no, is_partition_col, schema_name, table_name):
+        LOGGER.debug(column_list)
+        LOGGER.info("%d columns found in %s.%s" % (
+            len(column_list), schema_name, table_name))
+        columns = []
+        for c in column_list:
+            pii = c['Parameters']['PII'] if 'Parameters' in c and 'PII' in c['Parameters'] else None
+            columns.append(Column(
+                table_schema=schema_name,
+                table_name=table_name,
+                column_name=c['Name'],
+                data_type=c['Type'],
+                is_partition_column=is_partition_col,
+                pii=pii,
+                ordinal=ordinal_no
+            ))
+            ordinal_no += 1
+
+        return columns, ordinal_no
+
     def scan(self):
         lake_client = boto3.client('lakeformation',
                                    region_name=self.aws_config.region,
@@ -93,44 +114,15 @@ class Scanner:
                 ))
 
                 ordinal_no = 1
-                if 'StorageDescriptor' in t and 'PartitionKeys' in t['StorageDescriptor']:
-                    partition_columns = t['StorageDescriptor']['PartitionKeys']
-                    LOGGER.debug(partition_columns)
-
-                    LOGGER.info("%d partition columns found in %s.%s" % (
-                        len(partition_columns), d['Name'], t['Name']))
-
-                    for c in partition_columns:
-                        pii = c['Parameters']['PII'] if 'Parameters' in c and 'PII' in c['Parameters'] else None
-                        columns.append(Column(
-                            table_schema=d['Name'],
-                            table_name=t['Name'],
-                            column_name=c['Name'],
-                            data_type=c['Type'],
-                            is_partition_column=True,
-                            pii=pii,
-                            ordinal=ordinal_no
-                        ))
-                        ordinal_no += 1
-
-                if 'StorageDescriptor' in t and 'Columns' in t['StorageDescriptor']:
-                    column_response = t['StorageDescriptor']['Columns']
-                    LOGGER.debug(column_response)
-
-                    LOGGER.info("%d columns found in %s.%s" % (
-                        len(column_response), d['Name'], t['Name']))
-                    for c in column_response:
-                        pii = c['Parameters']['PII'] if 'Parameters' in c and 'PII' in c['Parameters'] else None
-                        columns.append(Column(
-                            table_schema=d['Name'],
-                            table_name=t['Name'],
-                            column_name=c['Name'],
-                            data_type=c['Type'],
-                            is_partition_column=False,
-                            pii=pii,
-                            ordinal=ordinal_no
-                        ))
-                        ordinal_no += 1
+                if 'StorageDescriptor' in t:
+                    for key in ('PartitionKeys', 'Columns'):
+                        if key in t['StorageDescriptor']:
+                            column_list = t['StorageDescriptor'][key]
+                            parsed_columns, ordinal_no = Scanner.parse_columns(column_list,
+                                                                               ordinal_no,
+                                                                               key == 'PartitionKeys',
+                                                                               d['Name'], t['Name'])
+                            columns.extend(parsed_columns)
 
         connection = init(self.path)
         try:
