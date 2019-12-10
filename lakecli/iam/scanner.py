@@ -21,9 +21,16 @@ class Scanner:
                                    aws_access_key_id=self.aws_config.aws_access_key_id,
                                    aws_secret_access_key=self.aws_config.aws_secret_access_key)
 
-        table_permissions = lake_client.list_permissions(
-            ResourceType='TABLE',
-        )
+        table_permissions = []
+        next_token = ''
+
+        while next_token is not None:
+            result = lake_client.list_permissions(
+                ResourceType='TABLE',
+                NextToken=next_token
+            )
+            table_permissions += result['PrincipalResourcePermissions']
+            next_token = result['NextToken'] if 'NextToken' in result else None
 
         LOGGER.debug(table_permissions)
 
@@ -33,8 +40,8 @@ class Scanner:
         LOGGER.debug(database_permissions)
 
         table_privileges = []
-        LOGGER.info("%d table permissions found." % len(table_permissions['PrincipalResourcePermissions']))
-        for resource in table_permissions['PrincipalResourcePermissions']:
+        LOGGER.info("%d table permissions found." % len(table_permissions))
+        for resource in table_permissions:
             for permission in resource['Permissions']:
                 grant = permission in resource['PermissionsWithGrantOption']
                 table_privileges.append(self._new_privilege(permission, resource['Resource'],
