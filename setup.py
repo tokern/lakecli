@@ -15,17 +15,6 @@ description = 'CLI for Athena Database and AWS Lake Formation. With auto-complet
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-install_requirements = [
-    'click>=4.1',
-    'Pygments>=1.6',
-    'prompt_toolkit>=1.0.10,<1.1.0',
-    'sqlparse>=0.2.2,<0.3.0',
-    'configobj>=5.0.5',
-    'cli_helpers[styles]>=1.0.1',
-    'botocore>=1.5.52',
-    'boto3>=1.4.4',
-    'peewee >= 3.11.2'
-]
 
 setup(
     name='lakecli',
@@ -43,7 +32,17 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/tokern/lakecli",
-    install_requires=install_requirements,
+    install_requires=[
+        'click>=4.1',
+        'Pygments>=1.6',
+        'prompt_toolkit>=1.0.10,<1.1.0',
+        'sqlparse>=0.2.2,<0.3.0',
+        'configobj>=5.0.5',
+        'cli_helpers[styles]>=1.0.1',
+        'botocore>=1.5.52',
+        'boto3>=1.4.4',
+        'peewee >= 3.11.2'
+    ],
     entry_points={
         'console_scripts': ['lakecli = lakecli.main:cli'],
     },
