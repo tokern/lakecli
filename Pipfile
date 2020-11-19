@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
 
 [dev-packages]
 mock = "*"
@@ -16,14 +16,13 @@ coverage = "*"
 pytest-cov = "*"
 codecov = "*"
 
-[dev-packages.e1839a8]
-path = "."
-editable = true
-
 [packages.lakecli]
-editable = true
-path = "."
-
-[packages.e1839a8]
-path = "."
-editable = true
+click = ">=4.1"
+Pygments = ">=1.6"
+prompt_toolkit = ">=1.0.10,<1.1.0"
+sqlparse = ">=0.2.2,<0.3.0"
+configobj = ">=5.0.5"
+"cli_helpers[styles]" = ">=1.0.1"
+botocore = ">=1.5.52"
+boto3 = ">=1.4.4"
+peewee = ">= 3.11.2"
